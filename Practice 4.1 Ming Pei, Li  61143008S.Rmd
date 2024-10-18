@@ -26,5 +26,4 @@ abline (lm_iris)
 text (x = 5, y = 0.5, "R = 0.96")
 
 dev.off ()
-
 ```
