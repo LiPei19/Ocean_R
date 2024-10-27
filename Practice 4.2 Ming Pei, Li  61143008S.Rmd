@@ -1,0 +1,49 @@
+---
+title: "Practice 4.2"
+author: "Ming Pei Li"
+date: "2024-10-27"
+output: html_document
+---
+
+```{r, warning = FALSE, message = FALSE}
+library (ggplot2)
+library (dplyr)
+library (tidyr)
+```
+
+```{r}
+data <- read.table ("Data/rairuoho.txt", header = TRUE)
+
+data_long <- data %>%
+  pivot_longer (cols = starts_with ("day"), names_to = "day", values_to = "growth") %>%
+  mutate (day = as.numeric (gsub ("day", "", day)))  # Remove "day" and convert to numeric
+
+data_summary <- data_long %>%
+  group_by (day, treatment) %>%
+  summarize (mean_growth = mean (growth), .groups = "drop")
+
+# Create the plot
+nw_plot <- ggplot (data_summary, aes(x = day, y = mean_growth, color = treatment)) +
+  geom_line (linewidth = 1.5) +          
+  geom_point (size = 3) +                 
+  labs (title = "Grass Growth Over Time by Treatment",
+       x = "Day",
+       y = "Average Growth (cm)",
+       color = "Treatment" ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text (hjust = 0.5, face = "bold"),  
+    legend.position = "top",                               
+    axis.text = element_text (size = 12),                    
+    axis.title = element_text (size = 14),                  
+    legend.title = element_text (size = 12),                 
+    legend.text = element_text (size = 10),                  
+    panel.grid.major = element_blank (),                     
+    panel.grid.minor = element_blank (),                     
+    axis.line = element_line (color = "black"),              
+    axis.ticks = element_line (color = "black")             
+  )
+
+ggsave ("nw_plot.pdf", width = 15,  height = 10,  units = "cm")
+```
+
