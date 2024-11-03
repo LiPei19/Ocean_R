@@ -1,0 +1,59 @@
+---
+title: 'Practice 5.1 (Ming Pei, Li : 61143008S)'
+author: "Ming Pei Li"
+date: "2024-11-03"
+output: html_document
+---
+
+```{r setup, message = FALSE}
+library(rgbif)
+library(leaflet)
+library(dplyr)
+```
+
+### Download occurrence data for Alexandromys kikuchii
+```{r}
+gbif_voles <- occ_search(
+  scientificName = "Alexandromys kikuchii",
+  hasCoordinate = TRUE,
+  basisOfRecord = 'HUMAN_OBSERVATION',
+  limit = 1000)
+```
+
+### Extract the data frame 
+```{r}
+gbif_voles <- gbif_voles$data %>%
+  filter(!is.na(decimalLongitude) & !is.na(decimalLatitude)) %>%
+  select(decimalLongitude, decimalLatitude)
+```
+
+`!is.na(decimalLongitude) & !is.na(decimalLatitude)` ensures that "longitude and latitude are not NA (missing values)". 
+`select()` is used to choose the columns we need.
+
+### Create map 
+```{r}
+Ak <- leaflet (data = gbif_voles) %>%
+  addTiles() %>%   # Add the base map layer
+  addCircleMarkers(
+    lng = ~decimalLongitude, 
+    lat = ~decimalLatitude,
+    color = "brown", 
+    radius = 5) %>%
+  setView (lng = 120.96, lat = 23.6, zoom = 7)%>%
+  addControl(html = "<strong> Distribution of Alexandromys kikuchii </strong>", position = "topright")
+
+Ak
+```
+
+
+`addTiles()` is used to add the base map layer
+`lng = ~decimalLongitude` and `lat = ~decimalLatitude` set the coordinates for each marker.
+
+`setView()`:
+1. Sets the initial view and zoom level of the map.
+2. `lng = 120.96` and `lat = 23.6` center the map at Taiwan's coordinates.
+3. sets zoom = 7, suitable for observing the Taiwan area.
+
+`addControl()` is used to add custom HTML titles or text to the map.
+The html parameter accepts HTML formatted text, such as <strong> for bold text.
+"<strong>Distribution of Alexandromys kikuchii</strong>": Closes the </strong> tag to make the entire title text bold.
