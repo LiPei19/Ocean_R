@@ -1,0 +1,109 @@
+---
+title: "Practice 7.4 HW"
+author: "Ming Pei Li"
+date: "2024-11-17"
+output: html_document
+---
+
+```{r, warning = FALSE, message = FALSE}
+library (tidyverse)
+```
+
+```{r}
+rairuoho <- read.table ('Data/rairuoho.txt', header = TRUE)
+```
+
+
+```{r}
+pearson.test <- function(x, y, conf.level = 0.95, alternative = c("two.sided", "less", "greater")) {
+  # 設定替代假設方向
+  alternative <- match.arg (alternative) # 函數的參數值是否符合預期的選項之一。如果參數值與選項不匹配，match.arg() 會自動報錯。
+  
+  # 設定資料名稱
+  DNAME <- paste (deparse1 (substitute (x)), "and", deparse1 (substitute (y)))
+  
+  # substitute() 函數會返回傳入變數（x 和 y）的表達式，即變數本身，而不是變數的值。換句話說，它會將變數名稱作為一個符號（symbol）返回。
+  # 例如，如果 x 是 day3，substitute(x) 會返回 day3 這個符號，而不是它的值。
+  # deparse1() 函數會將符號（如 day3）轉換為字串 "day3"。這是將 substitute(x) 或 substitute(y) 轉換為字符串的步驟。
+  # paste() 函數會將多個元素（這裡是變數名稱和 "and" 字串）合併成一個單一的字串。這裡將 x 和 y 的變數名稱（如 day3 和 day4）以 "and" 連接。
+  
+  # 資料檢查----
+  if (!is.numeric(x)) stop("'x' must be a numeric vector")
+  if (!is.numeric(y)) stop("'y' must be a numeric vector")
+  if (length(x) != length(y)) stop("'x' and 'y' must have the same length")
+  
+  # 去除缺失值
+  OK <- complete.cases(x, y) 
+  x <- x[OK]
+  y <- y[OK]
+  n <- length(x)
+  # complete.cases  檢測是否有NA
+  
+  # 样本數檢查
+  if (n < 3L) stop("not enough finite observations")
+  
+  # 計算皮爾森相關係數和統計量
+  method <- "Pearson's correlation"
+  r <- cor(x, y)
+  df <- n - 2
+  statistic <-  r * sqrt(df) / sqrt(1 - r^2)
+  
+  # 計算 p 值
+  p.value <- switch(
+    alternative,
+    less = pt(statistic, df),
+    greater = pt(statistic, df, lower.tail = FALSE),
+    two.sided = 2 * min(pt(statistic, df), pt(statistic, df, lower.tail = FALSE))
+  )
+  
+  # 計算信賴區間
+  z <- atanh(r)
+  sigma <- 1 / sqrt (n - 3)
+  conf.int <- tanh (z + c(-1, 1) * sigma * qnorm ((1 + conf.level) / 2))
+  attr (conf.int, "conf.level") <- conf.level
+  
+  # qnorm(p) 是將累積機率𝑝，計算回正態分佈中對應的臨界值（即橫座標值）。例如，qnorm(0.975) 的結果大約是 1.96，表示正態分佈中累積機率為 97.5% 時的橫座標值。
+  # c(-1, 1) 表示信賴區間的上下兩個界限，對於下界使用 -1，對於上界使用 +1。
+  # tanh(z...)將計算出的 z 軸的界限轉換回相關係數 r 的範圍。
+  #attr() 用於儲存或檢索 R 物件的附加資訊。在這個例子中，attr(conf.int, "conf.level") <- conf.level 將信賴水準儲存在 conf.int 物件中。
+  
+  
+  # 返回結果--
+  result <- list(
+    statistic = c(t = statistic),
+    parameter = c(df = df),
+    p.value = p.value,
+    estimate = c(correlation = r),
+    conf.int = conf.int,
+    null.value = 0,
+    alternative = alternative,
+    method = method,
+    data.name = DNAME
+  )
+  class (result) <- "htest"
+  return (result)}
+
+# 這行程式碼將 result 的類別（class）設置為 "htest"，使其符合 R 的統計檢定結果格式。
+# 標準化結果：
+# 在 R 中，許多統計檢定（如 t.test() 或 cor.test()）都返回類別為 "htest" 的物件。通過設定這個類別，result 可以與其他統計檢定結果保持一致。
+# 方便輸出：
+# R 的內建函數會根據物件的類別，使用適當的格式輸出結果。對於 "htest" 類型的物件，R 會自動以一種簡潔、可讀的格式顯示檢定結果。
+```
+
+The correlation test for the nutrient group
+```{r}
+day3_4_nu <- rairuoho %>% filter (treatment == "nutrient") %>% with (pearson.test (day3, day4))
+day3_4_nu
+day3_8_nu <- rairuoho %>% filter (treatment == "nutrient") %>% with (pearson.test (day3, day8))
+day3_8_nu
+```
+
+The correlation test for the water group
+```{r}
+day3_4_wa <- rairuoho %>% filter (treatment == "water") %>% with (pearson.test (day3, day4))
+day3_4_wa
+day3_8_wa <- rairuoho %>% filter (treatment == "water") %>% with (pearson.test (day3, day8))
+day3_8_wa
+```
+
+在 R 中，with() 函數被用來簡化對 data.frame 中欄位的引用。當我們使用 with(data, expression) 時，data 的欄位可以在 expression 中直接引用，而不需要用 $。在這種情況下，with() 會將篩選後的 data.frame 作為一個環境來解析 day3 和 day4 等變量名稱，使得它們可以在 cor.test() 中直接被引用。
